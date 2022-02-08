@@ -4,6 +4,7 @@ from Resources.Registration import Registration
 from Resources.LoadUsers import LoadUsers
 from Resources.Users import Users
 from Resources.Contests import Contests
+from Resources.Tasks import Tasks
 from flask import Flask
 
 
@@ -21,6 +22,7 @@ api.add_resource(Registration, "/registration")
 api.add_resource(LoadUsers, "/load_users")
 api.add_resource(Users, "/users/<int:id_user>")
 api.add_resource(Contests, "/contests/<int:id_contest>")
+api.add_resource(Tasks, "/tasks/<int:id_task>")
 
 
 def main():
