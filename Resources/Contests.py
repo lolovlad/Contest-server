@@ -14,7 +14,10 @@ class Contests(Resource):
     contest_parser.add_argument("type", type=int)
 
     def get(self, id_contest):
-        contests = Application().context.query(Contest).all()
+        if id_contest == 0:
+            contests = Application().context.query(Contest).all()
+        else:
+            contests = [Application().context.query(Contest).filter(Contest.id == id_contest).first()]
         response = {
             "contests": []
         }
@@ -40,6 +43,7 @@ class Contests(Resource):
 
     def delete(self, id_contest):
         Application().context.query(Contest).filter(Contest.id == id_contest).delete()
+        Application().context.commit()
         return {"data": "ok"}
 
     def put(self, id_contest):

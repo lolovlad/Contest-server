@@ -22,3 +22,4 @@ class Task(Application().model):
     path_programme_file = Column(String, nullable=False)
 
     type_task = Column(Integer, nullable=False, default=1)
+    number_shipments = Column(Integer, nullable=False, default=100)

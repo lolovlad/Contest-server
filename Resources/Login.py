@@ -14,7 +14,8 @@ class Login(Resource):
         if user and user.check_password(args["password"]):
             user_data = {"name": user.name,
                          "sename": user.sename,
-                         "type": user.type}
+                         "type": user.type,
+                         "id": user.id}
             return user_data
         else:
             return {"error": "неправильный логин или пароль"}

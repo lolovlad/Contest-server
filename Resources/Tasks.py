@@ -2,6 +2,7 @@ from flask_restful import Resource, reqparse
 from Class.StartAplication import Application
 from Model.Contest import Contest
 from Model.Task import Task
+from Class.PathFileDir import PathFileDir
 import werkzeug
 import datetime
 from random import randint
@@ -18,11 +19,16 @@ class Tasks(Resource):
         args["data"] = loads(args["data"])
         id_contest = Application().context.query(Contest).filter(Contest.id == id_task).first()
         task_dk = args["data"]
-        name_1, name_2 = randint(1, 1000000), randint(1, 1000000)
-        with open(f"Files/{name_1}.json", "w") as file:
-            file.write(task_dk["json"])
-        with open(f"Files/{name_2}.py", "w") as file:
-            file.write(task_dk["py"])
+
+        name_1 = PathFileDir.create_file_name("json")
+        name_2 = PathFileDir.create_file_name("py")
+
+        name_1 = PathFileDir.abs_path(f"{name_1}")
+        name_2 = PathFileDir.abs_path(f"{name_2}")
+
+        PathFileDir.write_file(name_1, task_dk["json"])
+        PathFileDir.write_file(name_2, task_dk["py"])
+
         task = Task(id_contest=id_contest.id,
                     time_work=task_dk["time_work"],
                     size_raw=task_dk["size_raw"],
@@ -32,8 +38,8 @@ class Tasks(Resource):
                     description=task_dk["description"],
                     description_input=task_dk["description_input"],
                     description_output=task_dk["description_output"],
-                    path_test_file=f"{name_1}.json",
-                    path_programme_file=f"{name_2}.py",
+                    path_test_file=f"{name_1}",
+                    path_programme_file=f"{name_2}",
                     type_task=task_dk["type_task"])
         Application().context.add(task)
         Application().context.commit()
@@ -56,16 +62,19 @@ class Tasks(Resource):
                                       "description_output": task.description_output,
                                       "path_test_file": task.path_test_file,
                                       "path_programme_file": task.path_programme_file,
-                                      "type_task": task.type_task})
+                                      "type_task": task.type_task,
+                                      "number_shipments": task.number_shipments})
         return response
 
     def delete(self, id_task):
-
         task = Application().context.query(Task).filter(Task.id == id_task)
         now_task = task.first()
-        os.remove(f"Files/{now_task.path_test_file}")
-        os.remove(f"Files/{now_task.path_programme_file}")
+
+        os.remove(now_task.path_test_file)
+        os.remove(now_task.path_programme_file)
+
         task.delete()
+        Application().context.commit()
         return {"data": "ok"}
 
     def put(self, id_task):
@@ -74,13 +83,12 @@ class Tasks(Resource):
         args["data"] = loads(args["data"])
 
         task_dk = args["data"]
+
         if task_dk.get("json") is not None:
-            with open(f"Files/{now_task.path_test_file}", "w") as file:
-                file.write(task_dk["json"])
+            PathFileDir.write_file(now_task.path_test_file, task_dk["json"])
 
         if task_dk.get("py") is not None:
-            with open(f"Files/{now_task.path_programme_file}", "w") as file:
-                file.write(task_dk["py"])
+            PathFileDir.write_file(now_task.path_programme_file, task_dk["py"])
 
         now_task.time_work = task_dk["time_work"]
         now_task.size_raw = task_dk["size_raw"]
