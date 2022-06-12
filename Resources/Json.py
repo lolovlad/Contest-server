@@ -1,23 +1,23 @@
-from flask_restful import Resource
-from Class.StartAplication import Application
-from Model.Task import Task
+from flask_restful import Resource, reqparse
 from Class.JsonView import JsonView
-import werkzeug
-import datetime
-from random import randint
 from json import loads
-import os
 
 
 class Json(Resource):
-    def get(self, id_task):
-        tasks = Application().context.query(Task).filter(Task.id_contest == id_task).all()
+    name_file_parser = reqparse.RequestParser()
+    name_file_parser.add_argument("list_name_file", type=str)
+
+    def get(self):
+        args = self.name_file_parser.parse_args()
+        name_file_parser = loads(args.list_name_file)
+
         response = {
-            "jsons_view": []
+            "message": "load_json_test_file",
+            "data": {"jsons_view": {}}
         }
-        for task in tasks:
-            file_json = task.path_test_file
+        for name_file in name_file_parser["name_files"]:
+            file_json = name_file
             view = JsonView(file_json)
             view.generate_view()
-            response["jsons_view"].append(view.view)
+            response["data"]["jsons_view"][name_file] = view.view
         return response

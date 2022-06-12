@@ -3,19 +3,27 @@ from Class.StartAplication import Application
 
 from Model.Answer import Answer
 from Model.Contest import Contest
+from Model.Team import Team
 from Model.User import User
 from Model.Task import Task
+
+from Class.ModelJson.Answer import Answer as AnswerJson
 
 from Class.PathFileDir import PathFileDir
 from Class.CheckAnswer.CheckingAnswers import CreateAnswers
 
 from json import loads
+from pykson import Pykson
 import os
 
 
 class Answers(Resource):
     answer_parser = reqparse.RequestParser()
     answer_parser.add_argument("data", type=str)
+
+    answer_parser.add_argument("id_team", type=int)
+    answer_parser.add_argument("id_user", type=int)
+    answer_parser.add_argument("id_contest", type=int)
 
     checking_answer = CreateAnswers()
 
@@ -25,9 +33,9 @@ class Answers(Resource):
 
         answer_deserializer = args["data"]
 
-        task = Application().context.query(Task).filter(Task.id == id_task).first()
-        contest = Application().context.query(Contest).filter(Contest.id == task.id_contest).first()
-        user = Application().context.query(User).filter(User.id == answer_deserializer["user_id"]).first()
+        task = self.__get_model(Task).filter(Task.id == id_task).first()
+        team = self.__get_model(Team).filter(Team.id == answer_deserializer["id_team"]).first()
+        user = self.__get_model(User).filter(User.id == answer_deserializer["id_user"]).first()
 
         name_file = PathFileDir.create_file_name(answer_deserializer["extension_file"])
         name_file = PathFileDir.abs_path(f"{PathFileDir.translate_name_file(user.name)}_"
@@ -35,39 +43,31 @@ class Answers(Resource):
 
         PathFileDir.write_file(name_file, answer_deserializer["file"])
 
-        answer = Answer(id_contest=contest.id,
-                        user_send=user.id,
-                        id_task=task.id,
+        answer = Answer(team=team,
+                        user=user,
+                        task=task,
+                        id_contest=task.id_contest,
                         path_programme_file=str(name_file))
 
         Application().context.add(answer)
         Application().context.commit()
 
-        self.checking_answer.pool_new_answer(answer)
-        return {"data": "ok"}
+        self.checking_answer.pool_new_answer(answer.id)
+        return {"message": "add_answer", "data": "проверка началась"}
 
     def get(self, id_task):
-        answers = Application().context.query(Answer).filter(Answer.id_task == id_task).all()
+        args = self.answer_parser.parse_args()
+        answer = self.__get_answer()
+        if id_task != 0:
+            answers = answer.filter(Answer.id_task == id_task).all()
+        else:
+            answers = self.__filter(answer, args.id_team, args.id_user, args.id_contest)
         response = {
-            "answers": []
+            "message": "load_answer",
+            "data": {"answers": []}
         }
         for answer in answers:
-            user = Application().context.query(User).filter(User.id == answer.user_send).first()
-
-            response["answers"].append({
-                "date_send": answer.date_send.strftime("%Y-%m-%d %H:%M:%S"),
-                "id": answer.id,
-                "id_contest": answer.id_contest,
-                "user_send": user.name,
-                "id_task": answer.id_task,
-                "type_compiler": answer.type_compiler,
-                "total": answer.total,
-                "time": answer.time,
-                "memory_size": answer.memory_size,
-                "number_test": answer.number_test,
-                "points": answer.points,
-                "path_report_file": answer.path_report_file
-            })
+            response["data"]["answers"].append(self.__conver_answer(answer))
         return response
 
     def delete(self, id_task):
@@ -105,3 +105,44 @@ class Answers(Resource):
 
         Application().context.commit()
         return {"data": "ok"}
+
+    def __get_answer(self):
+        try:
+            answer = Application().context.query(Answer)
+        except AttributeError:
+            Application().context.rollback()
+            answer = Application().context.query(Answer)
+        return answer
+
+    def __get_model(self, model):
+        try:
+            answer = Application().context.query(model)
+        except AttributeError:
+            Application().context.rollback()
+            answer = Application().context.query(model)
+        return answer
+
+    def __filter(self, answers, id_team, id_user, id_contest):
+        if id_team is not None:
+            answers = answers.filter(Answer.id_team == id_team)
+        if id_user is not None:
+            answers = answers.filter(Answer.id_team == id_team)
+        if id_contest is not None:
+            answers = answers.filter(Answer.id_team == id_team)
+        return answers.all()
+
+    def __conver_answer(self, answer):
+        try:
+            user_dict = answer.user.__dict__
+            team_dict = answer.team.__dict__
+            task_dict = answer.task.__dict__
+        except AttributeError:
+            user_dict = answer.user
+            team_dict = answer.team
+            task_dict = answer.task
+        answer_dict = answer.__dict__
+        answer_dict["team"] = team_dict
+        answer_dict["task"] = task_dict
+        answer_dict["user"] = user_dict
+        answer_json = Pykson().from_json(answer_dict, AnswerJson, accept_unknown=True)
+        return Pykson().to_dict_or_list(answer_json)

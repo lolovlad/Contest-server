@@ -4,8 +4,8 @@ class OutputFileStream:
 
     def read_output(self, output_data):
         try:
-            with open(self.__path_dir, "r") as file:
+            with open(str(self.__path_dir) + "/output.txt", "r") as file:
                 output = file.readlines()
-            return list(map(lambda x: x[:-2], output))
+                return list(map(lambda x: x.replace("\n", ""), output))
         except FileNotFoundError:
             return "FileNotFound"

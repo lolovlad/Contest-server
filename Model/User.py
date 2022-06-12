@@ -1,22 +1,25 @@
 import datetime
 from sqlalchemy import orm
+from sqlalchemy.orm import relationship
 from sqlalchemy import Column, Integer, String, LargeBinary, Date, ForeignKey
 from Class.StartAplication import Application
-from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
-class User(Application().model, UserMixin):
+class User(Application().model):
     __tablename__ = "user"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     login = Column(String, nullable=True)
     name = Column(String, nullable=True)
     sename = Column(String, nullable=True)
-
+    secondname = Column(String, nullable=False, default="")
     type = Column(Integer, default=1)
+    id_team = Column(Integer, ForeignKey('team.id'), nullable=True)
 
     hashed_password = Column(String, nullable=True)
+
+    answers = relationship('Answer', backref='user')
 
     @property
     def password(self):

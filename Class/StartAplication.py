@@ -1,7 +1,6 @@
 from Interfase.Solide import Solide
 from flask import Flask
 from flask_restful import Api
-from flask_login import LoginManager
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 import sqlalchemy.orm as orm
@@ -11,14 +10,17 @@ class Application(metaclass=Solide):
     __app = Flask("__main__")
     __api = Api(__app)
     __app.config['SECRET_KEY'] = 'def'
-    __login_manager = LoginManager()
-    __login_manager.init_app(__app)
     __model = declarative_base()
     __context = None
+    __engine = None
 
     @property
     def app(self):
         return self.__app
+
+    @property
+    def engine(self):
+        return self.__engine
 
     @property
     def api(self):
@@ -29,12 +31,6 @@ class Application(metaclass=Solide):
         self.__app = val
         self.__api = Api(self.__app)
         self.__app.config['SECRET_KEY'] = 'def'
-        self.__login_manager = LoginManager()
-        self.__login_manager.init_app(self.__app)
-
-    @property
-    def login_manager(self):
-        return self.__login_manager
 
     @property
     def context(self):
@@ -51,6 +47,7 @@ class Application(metaclass=Solide):
         print(f"Подключение к базе данных по адресу {name_data_base}")
 
         engine = create_engine(name_data_base, echo=True)
+        self.__engine = engine
         self.__context = orm.sessionmaker(bind=engine)()
         self.__model.metadata.create_all(engine)
 

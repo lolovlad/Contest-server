@@ -19,13 +19,13 @@ class PathFileDir:
 
     @classmethod
     def write_file(cls, path_file, write_file):
-        cls.create_dirs(path_file)
+        cls.create_folders(path_file)
 
         with open(path_file, "w") as file:
             file.write(write_file)
 
     @classmethod
-    def create_dirs(cls, path_file):
+    def create_folders(cls, path_file):
         folders = str(path_file).split("\\")
         length = len(folders[:-1])
         if "." in folders[-1]:
@@ -46,7 +46,7 @@ class PathFileDir:
         return f"{''.join(choices(st, k=size))}.{extension}"
 
     @classmethod
-    def create_folder(cls, size=10):
+    def genera_name_folder(cls, size=10):
         st = ascii_letters + digits
         return f"{''.join(choices(st, k=size))}"
 

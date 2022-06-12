@@ -4,17 +4,18 @@ from Class.PathFileDir import PathFileDir
 
 
 class InputData:
-    def __init__(self):
-        self.__name_dir = PathFileDir.create_folder()
-        self.__file_data = FileStream(self.__name_dir)
-        self.__input_data = InputStream(self.__name_dir)
-
-    @property
-    def name_dir(self):
-        return self.__name_dir
+    def __init__(self, path):
+        self.__file_data = FileStream(path)
+        self.__input_data = InputStream(path)
+        self.__input_stream = None
 
     def creating_input_data(self, type_data):
         if type_data == 1:
-            return self.__input_data
+            self.__input_stream = self.__input_data
         elif type_data == 2:
-            return self.__file_data
+            self.__input_stream = self.__file_data
+
+    def start_stream(self, input_data):
+        return self.__input_stream.start_stream(input_data)
+
+

@@ -16,21 +16,16 @@ class Tasks(Resource):
 
     def post(self, id_task):
         args = self.task_parser.parse_args()
-        args["data"] = loads(args["data"])
-        id_contest = Application().context.query(Contest).filter(Contest.id == id_task).first()
-        task_dk = args["data"]
+        task_dk = loads(args["data"])
+
+        contest = self.__get_contest().filter(Contest.id == task_dk["id_contest"]).first()
 
         name_1 = PathFileDir.create_file_name("json")
-        name_2 = PathFileDir.create_file_name("py")
 
         name_1 = PathFileDir.abs_path(f"{name_1}")
-        name_2 = PathFileDir.abs_path(f"{name_2}")
-
         PathFileDir.write_file(name_1, task_dk["json"])
-        PathFileDir.write_file(name_2, task_dk["py"])
 
-        task = Task(id_contest=id_contest.id,
-                    time_work=task_dk["time_work"],
+        task = Task(time_work=task_dk["time_work"],
                     size_raw=task_dk["size_raw"],
                     type_input=task_dk["type_input"],
                     type_output=task_dk["type_output"],
@@ -39,11 +34,10 @@ class Tasks(Resource):
                     description_input=task_dk["description_input"],
                     description_output=task_dk["description_output"],
                     path_test_file=f"{name_1}",
-                    path_programme_file=f"{name_2}",
                     type_task=task_dk["type_task"])
-        Application().context.add(task)
+        contest.tasks.append(task)
         Application().context.commit()
-        return {"data": "ok"}
+        return {"message": "add_task", "data": {"massage": "запись успешно добавленны", "task": {"id": task.id}}}
 
     def get(self, id_task):
         tasks = Application().context.query(Task).filter(Task.id_contest == id_task).all()
@@ -67,28 +61,17 @@ class Tasks(Resource):
         return response
 
     def delete(self, id_task):
-        task = Application().context.query(Task).filter(Task.id == id_task)
-        now_task = task.first()
-
-        os.remove(now_task.path_test_file)
-        os.remove(now_task.path_programme_file)
-
-        task.delete()
+        self.__get_task().filter(Task.id == id_task).delete()
         Application().context.commit()
-        return {"data": "ok"}
+        return {"message": "delete_task", "data": "запись успешно удалена"}
 
     def put(self, id_task):
         args = self.task_parser.parse_args()
-        now_task = Application().context.query(Task).filter(Task.id == id_task).first()
-        args["data"] = loads(args["data"])
-
-        task_dk = args["data"]
+        task_dk = loads(args["data"])
+        now_task = self.__get_task().filter(Task.id == task_dk["id"]).first()
 
         if task_dk.get("json") is not None:
             PathFileDir.write_file(now_task.path_test_file, task_dk["json"])
-
-        if task_dk.get("py") is not None:
-            PathFileDir.write_file(now_task.path_programme_file, task_dk["py"])
 
         now_task.time_work = task_dk["time_work"]
         now_task.size_raw = task_dk["size_raw"]
@@ -102,4 +85,20 @@ class Tasks(Resource):
         now_task.type_task = task_dk["type_task"]
 
         Application().context.commit()
-        return {"data": "ok"}
+        return {"message": "update_task", "data": "запись успешно изменена"}
+
+    def __get_contest(self):
+        try:
+            contest = Application().context.query(Contest)
+        except AttributeError:
+            Application().context.rollback()
+            contest = Application().context.query(Contest)
+        return contest
+
+    def __get_task(self):
+        try:
+            task = Application().context.query(Task)
+        except AttributeError:
+            Application().context.rollback()
+            task = Application().context.query(Task)
+        return task
